@@ -1,0 +1,5 @@
+project:
+  trigger:
+    include: ${CI_PROJECT_DIR}/project-ci.yml
+  rules:
+    - when: always

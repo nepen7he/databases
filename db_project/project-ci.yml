@@ -1,0 +1,131 @@
+image: python:3.9-slim
+
+# стейджи пайплайна
+stages:
+  - tasks # у этого стейджа есть стэпы: 'tasks from 3rd to 11th' & 'task 12th'
+
+# внутри пайплайна автоматически поднимается
+# пустая база Postgres (каждый раз на новый степ)
+services:
+  - name: postgres:15-alpine
+    alias: postgres
+
+workflow:
+  rules:
+    - when: always
+
+variables:
+#  переменные окружения для Postgress
+  POSTGRES_DB: postgres
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: password
+  POSTGRES_HOST_AUTH_METHOD: trust
+
+#  переменные окружения для вспомогательного
+#  скрипта utils/pypsql.py и тестов
+  DBNAME: postgres
+  DBHOST: postgres
+  DBPORT: 5432
+  DBUSER: postgres
+  DBPASSWORD: password
+
+#  аккуратное формирование всяких абсолютных
+#  путей к файлам и директориям
+#  ${PROJECT_DIR} тождественно равен ${CI_PROJECT_DIR}
+  PROJECT_DIR: ${CI_PROJECT_DIR}
+  ANALYSIS_DIR: ${PROJECT_DIR}/analysis
+  SCRIPTS_DIR: ${PROJECT_DIR}/scripts
+  TESTS_DIR: ${PROJECT_DIR}/tests
+  UTILS_DIR: ${PROJECT_DIR}/utils
+  PYPSQL: ${UTILS_DIR}/pypsql.py
+
+#  переменные для цвета в консоли (можете
+#  использовать какие-то другие свои)
+  NO_COLOUR: '\033[0m'
+  LIGHT_RED: '\033[1;31m'
+
+
+.setup:
+  before_script:
+    - pip install -r ${PROJECT_DIR}/requirements.txt > /dev/null 2> /dev/null
+
+
+tasks from 3rd to 11th:
+  stage: tasks
+  extends:
+    - .setup
+  script:
+    - echo -e "${LIGHT_RED}>>> Task №3 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/cinema_ddl.sql" --cat
+
+    - echo -e "${LIGHT_RED}>>> Task №4-5 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/inserts.sql"
+    - echo "Table 'cinema.film' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.film" --verbose
+    - echo "Table 'cinema.genre' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.genre" --verbose
+    - echo "Table 'cinema.session' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.session" --verbose
+    - echo "Table 'cinema.film_x_genre' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.film_x_genre" --verbose
+    - echo "Table 'cinema.ticket' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.ticket" --verbose
+    - echo "Table 'cinema.hall' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.hall" --verbose
+    - echo "Table 'cinema.place' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.place" --verbose
+    - echo "Table 'cinema.employee' contains rows:"
+    - python3 ${PYPSQL} --sql="SELECT * FROM cinema.employee" --verbose
+
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/adv-select_1.sql" pytest ${TESTS_DIR}/test_salary_assert.py
+
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/adv-select_2.sql" pytest ${TESTS_DIR}/test_duration_assert.py
+
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/adv-select_3.sql" pytest ${TESTS_DIR}/test_filmrankings_assert.py
+
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/adv-select_4.sql" pytest ${TESTS_DIR}/test_revenue.py
+
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/adv-select_5.sql" pytest ${TESTS_DIR}/test_sessions.py
+
+    - echo -e "${LIGHT_RED}>>> Task №6-7 <<<${NO_COLOUR}"
+    - SCRIPT_PATH="${SCRIPTS_DIR}/adv-select_6.sql" pytest ${TESTS_DIR}/test_popularity.py
+
+    - echo -e "${LIGHT_RED}>>> Task №9 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/view_1.sql"
+
+    - echo -e "${LIGHT_RED}>>> Task №9 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/view_2.sql"
+
+    - echo -e "${LIGHT_RED}>>> Task №9 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/view_3.sql"
+
+    - echo -e "${LIGHT_RED}>>> Task №9 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/view_4.sql"
+
+    - echo -e "${LIGHT_RED}>>> Task №9 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/view_5.sql"
+
+    - echo -e "${LIGHT_RED}>>> Task №9 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/view_6.sql"
+
+
+    - echo -e "${LIGHT_RED}>>> Task №10 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/procedures_triggers_1.sql"
+
+    - echo -e "${LIGHT_RED}>>> Task №10 <<<${NO_COLOUR}"
+    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/procedures_triggers_2.sql"
+
+#
+#
+#task 12th:
+#  stage: tasks
+#  extends:
+#    - .setup
+#  script:
+#    - python3 ${PYPSQL} --file="${SCRIPTS_DIR}/cinema_ddl.sql"
+#    - python3 ${ANALYSIS_DIR}/analysis.py
